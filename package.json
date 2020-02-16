@@ -14,9 +14,9 @@
     "dist"
   ],
   "scripts": {
-    "version": "HUSKY_SKIP_HOOKS=1 standard-version",
+    "standard-version": "HUSKY_SKIP_HOOKS=1 standard-version",
     "build": "rollup src/index.js --file dist/bundle.js --format umd --name millheatApi",
-    "release": "HUSKY_SKIP_HOOKS=1 npm run build && standard-version && git push --follow-tags origin master && npm publish"
+    "release": "npm run build && npm run standard-version && git push --follow-tags origin master && npm publish"
   },
   "dependencies": {
     "fetch-ponyfill": "^6.1.0",
@@ -47,9 +47,9 @@
   },
   "repository": {
     "type": "git",
-    "url": "git+https://github.com/andyno/homebridge-millheat.git"
+    "url": "git+https://github.com/andyno/millheat-api.git"
   },
   "bugs": {
-    "url": "https://github.com/andyno/homebridge-millheat/issues"
+    "url": "https://github.com/andyno/millheat-api/issues"
   }
 }
