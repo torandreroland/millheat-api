@@ -1,0 +1,55 @@
+{
+  "name": "millheat-api",
+  "version": "0.0.1",
+  "description": "API for Mill heaters",
+  "main": "dist/bundle.js",
+  "module": "dist/bundle.js",
+  "keywords": [
+    "mill",
+    "millheat"
+  ],
+  "files": [
+    "CHANGELOG.md",
+    "README.md",
+    "dist"
+  ],
+  "scripts": {
+    "version": "HUSKY_SKIP_HOOKS=1 standard-version",
+    "build": "rollup src/index.js --file dist/bundle.js --format umd --name millheatApi",
+    "release": "HUSKY_SKIP_HOOKS=1 npm run build && standard-version && git push --follow-tags origin master && npm publish"
+  },
+  "dependencies": {
+    "fetch-ponyfill": "^6.1.0",
+    "simple-sha1": "^3.0.1",
+    "uuid": "^3.4.0"
+  },
+  "author": "Andreas Stræte",
+  "license": "MIT",
+  "devDependencies": {
+    "commitizen": "^4.0.3",
+    "cz-conventional-changelog": "^3.1.0",
+    "husky": "^4.2.3",
+    "prettier": "^1.19.1",
+    "pretty-quick": "^2.0.1",
+    "rollup": "^1.31.1",
+    "standard-version": "^7.1.0"
+  },
+  "husky": {
+    "hooks": {
+      "pre-commit": "pretty-quick --staged",
+      "prepare-commit-msg": "exec < /dev/tty && git cz --hook || true"
+    }
+  },
+  "config": {
+    "commitizen": {
+      "path": "./node_modules/cz-conventional-changelog"
+    }
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/andyno/homebridge-millheat.git"
+  },
+  "bugs": {
+    "url": "https://github.com/andyno/homebridge-millheat/issues"
+  }
+}
