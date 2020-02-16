@@ -1,6 +1,6 @@
 {
   "name": "millheat-api",
-  "version": "0.0.1",
+  "version": "0.0.2",
   "description": "API for Mill heaters",
   "main": "dist/bundle.js",
   "module": "dist/bundle.js",
