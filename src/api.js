@@ -33,6 +33,7 @@ export const authenticate = async (username, password, logger) => {
   const json = await response.json();
   logger.debug(`response: ${JSON.stringify(json)}`);
   if (response.ok && !json.error) {
+    json.tokenExpire = json.tokenExpire.replace(" ","T")
     return json;
   } else {
     throw new Error(`errorCode: ${json.errorCode}, error: ${json.error}, description: ${json.description}`);
