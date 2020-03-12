@@ -2,34 +2,57 @@ import { command, authenticate } from './api';
 
 const REFRESH_OFFSET = 5 * 60 * 1000;
 
+const ACCOUNT_ENDPOINT = 'https://eurouter.ablecloud.cn:9005/zc-account/v1/';
+const SERVICE_ENDPOINT = 'https://eurouter.ablecloud.cn:9005/millService/v1/';
+
 class Mill {
-  constructor(username, password, logger) {
-    this.logger = logger || console;
+  constructor(username, password, opts = {}) {
+    this.logger = opts.logger || console;
+    this.accountEndpoint = opts.accountEndpoint || ACCOUNT_ENDPOINT;
+    this.serviceEndpoint = opts.serviceEndpoint || SERVICE_ENDPOINT;
     this.username = username;
     this.password = password;
-    this._authenticate();
-    this.initialized = false;
+    this.authenticating = false;
     this.devices = [];
+    this._authenticate();
   }
 
   async _authenticate() {
-    const auth = await authenticate(this.username, this.password, this.logger);
-    this.token = auth.token;
-    this.userId = auth.userId;
-    this.tokenExpire = auth.tokenExpire;
-    this.initialized = true;
+    if (!this.authenticating) {
+      this.authenticating = true;
+      try {
+        const auth = await authenticate(this.username, this.password, this.logger, this.accountEndpoint);
+        this.token = auth.token;
+        this.userId = auth.userId;
+        this.tokenExpire = auth.tokenExpire;
+        this.authenticating = false;
+      } catch (e) {
+        this.token = null;
+        this.userId = null;
+        this.tokenExpire = null;
+        this.authenticating = false;
+        throw e;
+      }
+    } else {
+      while (this.authenticating) {
+        await new Promise(resolve => setTimeout(resolve, 50));
+      }
+      if (!this.token) {
+        throw new Error('Authentication failed');
+      }
+    }
   }
 
   async _command(commandName, payload) {
-    while (!this.initialized) {
-      await new Promise(resolve => setTimeout(resolve, 100));
+    while (this.authenticating) {
+      await new Promise(resolve => setTimeout(resolve, 50));
     }
     try {
       if (!this.token || new Date(this.tokenExpire).getTime() < new Date().getTime() - REFRESH_OFFSET) {
         this.logger.debug('Refreshing token');
         await this._authenticate();
       }
-      return await command(this.userId, this.token, commandName, payload, this.logger);
+      return await command(this.userId, this.token, commandName, payload, this.logger, this.serviceEndpoint);
     } catch (e) {
       this.logger.error("Couldn't perform command:" + e.message);
       throw e;

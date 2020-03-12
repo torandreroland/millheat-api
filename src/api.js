@@ -3,8 +3,6 @@ import uuid from 'uuid/v4';
 import fetchPonyfill from 'fetch-ponyfill';
 const { fetch } = fetchPonyfill({});
 
-const API_ENDPOINT_1 = 'https://eurouter.ablecloud.cn:9005/zc-account/v1/';
-const API_ENDPOINT_2 = 'https://eurouter.ablecloud.cn:9005/millService/v1/';
 const REQUEST_TIMEOUT = '300';
 
 const DEFAULT_HEADERS = {
@@ -17,8 +15,8 @@ const DEFAULT_HEADERS = {
   'X-Zc-Version': '1',
 };
 
-export const authenticate = async (username, password, logger) => {
-  const url = API_ENDPOINT_1 + 'login';
+export const authenticate = async (username, password, logger, endpoint) => {
+  const url = endpoint + 'login';
   const method = 'POST';
   const headers = {
     ...DEFAULT_HEADERS,
@@ -33,15 +31,15 @@ export const authenticate = async (username, password, logger) => {
   const json = await response.json();
   logger.debug(`response: ${JSON.stringify(json)}`);
   if (response.ok && !json.error) {
-    json.tokenExpire = json.tokenExpire.replace(' ','T');
+    json.tokenExpire = json.tokenExpire.replace(' ', 'T');
     return json;
   } else {
     throw new Error(`errorCode: ${json.errorCode}, error: ${json.error}, description: ${json.description}`);
   }
 };
 
-export const command = async (userId, token, command, payload, logger) => {
-  const url = API_ENDPOINT_2 + command;
+export const command = async (userId, token, command, payload, logger, endpoint) => {
+  const url = endpoint + command;
   const method = 'POST';
   const nonce = uuid()
     .replace(/-/g, '')
