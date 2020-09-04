@@ -1,5 +1,5 @@
 import sha1 from 'simple-sha1';
-import uuid from 'uuid/v4';
+import { v4 as uuidv4 } from 'uuid';
 import fetchPonyfill from 'fetch-ponyfill';
 const { fetch } = fetchPonyfill({});
 
@@ -41,10 +41,7 @@ export const authenticate = async (username, password, logger, endpoint) => {
 export const command = async (userId, token, command, payload, logger, endpoint) => {
   const url = endpoint + command;
   const method = 'POST';
-  const nonce = uuid()
-    .replace(/-/g, '')
-    .toUpperCase()
-    .substring(0, 16);
+  const nonce = uuidv4().replace(/-/g, '').toUpperCase().substring(0, 16);
   const timestamp = Math.round(new Date().getTime() / 1000);
   const signature = sha1.sync(REQUEST_TIMEOUT + timestamp + nonce + token);
   const body = JSON.stringify(payload);
