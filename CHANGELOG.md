@@ -2,6 +2,13 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+### [0.0.7](https://github.com/andyno/millheat-api/compare/v0.0.6...v0.0.7) (2021-11-05)
+
+
+### Bug Fixes
+
+* **error:** add timezone handling and retry when error code is "token expired" ([d85a20f](https://github.com/andyno/millheat-api/commit/d85a20f018e758095dfaf94a01bdc713068e1283))
+
 ### [0.0.6](https://github.com/andyno/millheat-api/compare/v0.0.5...v0.0.6) (2020-09-04)
 
 
