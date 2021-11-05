@@ -23,7 +23,6 @@ class Mill {
       this.authenticating = true;
       try {
         const auth = await authenticate(this.username, this.password, this.logger, this.accountEndpoint);
-        console.log(auth);
         this.token = auth.token;
         this.userId = auth.userId;
         this.tokenExpire = auth.tokenExpire;
