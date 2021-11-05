@@ -1,6 +1,7 @@
 import sha1 from 'simple-sha1';
 import { v4 as uuidv4 } from 'uuid';
 import fetchPonyfill from 'fetch-ponyfill';
+import spacetime from 'spacetime';
 const { fetch } = fetchPonyfill({});
 
 const REQUEST_TIMEOUT = '300';
@@ -31,7 +32,7 @@ export const authenticate = async (username, password, logger, endpoint) => {
   const json = await response.json();
   logger.debug(`response: ${JSON.stringify(json)}`);
   if (response.ok && !json.error) {
-    json.tokenExpire = json.tokenExpire.replace(' ', 'T');
+    json.tokenExpire = spacetime(json.tokenExpire, 'Europe/Oslo');
     return json;
   } else {
     throw new Error(`errorCode: ${json.errorCode}, error: ${json.error}, description: ${json.description}`);
@@ -70,6 +71,10 @@ export const command = async (userId, token, command, payload, logger, endpoint)
   if (response.ok && !json.error) {
     return json;
   } else {
-    throw new Error(`error: { errorCode: ${json.errorCode}, error: ${json.error}, description: ${json.description} }`);
+    const error = new Error(
+      `error: { errorCode: ${json.errorCode}, error: ${json.error}, description: ${json.description} }`
+    );
+    error.errorCode = json.errorCode;
+    throw error;
   }
 };

@@ -16,18 +16,20 @@
   "scripts": {
     "standard-version": "HUSKY_SKIP_HOOKS=1 standard-version",
     "build": "rollup src/index.js --file dist/bundle.js --format umd --name millheatApi",
-    "release": "npm run build && npm run standard-version && git push --follow-tags origin master && npm publish"
+    "release": "npm run build && npm run standard-version && git push --follow-tags origin master && npm publish",
+    "debug": "node debug.js"
   },
   "dependencies": {
     "fetch-ponyfill": "^6.1.0",
     "simple-sha1": "^3.0.1",
+    "spacetime": "^6.16.3",
     "uuid": "^8.3.0"
   },
   "author": "Andreas Stræte",
   "license": "MIT",
   "devDependencies": {
-    "commitizen": "^4.0.3",
-    "cz-conventional-changelog": "^3.1.0",
+    "commitizen": "^4.2.4",
+    "cz-conventional-changelog": "^3.0.1",
     "husky": "^4.2.3",
     "prettier": "^2.1.1",
     "pretty-quick": "^3.0.0",

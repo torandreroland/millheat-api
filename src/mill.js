@@ -1,6 +1,7 @@
 import { command, authenticate } from './api';
+import spacetime from 'spacetime';
 
-const REFRESH_OFFSET = 5 * 60 * 1000;
+const REFRESH_OFFSET = 5;
 
 const ACCOUNT_ENDPOINT = 'https://eurouter.ablecloud.cn:9005/zc-account/v1/';
 const SERVICE_ENDPOINT = 'https://eurouter.ablecloud.cn:9005/millService/v1/';
@@ -22,6 +23,7 @@ class Mill {
       this.authenticating = true;
       try {
         const auth = await authenticate(this.username, this.password, this.logger, this.accountEndpoint);
+        console.log(auth);
         this.token = auth.token;
         this.userId = auth.userId;
         this.tokenExpire = auth.tokenExpire;
@@ -35,7 +37,7 @@ class Mill {
       }
     } else {
       while (this.authenticating) {
-        await new Promise(resolve => setTimeout(resolve, 50));
+        await new Promise((resolve) => setTimeout(resolve, 50));
       }
       if (!this.token) {
         throw new Error('Authentication failed');
@@ -45,22 +47,33 @@ class Mill {
 
   async _command(commandName, payload) {
     while (this.authenticating) {
-      await new Promise(resolve => setTimeout(resolve, 50));
+      await new Promise((resolve) => setTimeout(resolve, 50));
     }
     try {
-      if (!this.token || new Date(this.tokenExpire).getTime() < new Date().getTime() - REFRESH_OFFSET) {
+      if (!this.token || spacetime.now().diff(this.tokenExpire, 'minutes') < REFRESH_OFFSET) {
         this.logger.debug('Refreshing token');
         await this._authenticate();
       }
       return await command(this.userId, this.token, commandName, payload, this.logger, this.serviceEndpoint);
     } catch (e) {
-      this.logger.error("Couldn't perform command:" + e.message);
-      throw e;
+      if (e.errorCode === 3515) {
+        this.logger.debug('Token expired, trying to refresh token');
+        try {
+          await this._authenticate();
+          return await command(this.userId, this.token, commandName, payload, this.logger, this.serviceEndpoint);
+        } catch (e) {
+          this.logger.error("Couldn't perform command:" + e.message);
+          throw e;
+        }
+      } else {
+        this.logger.error("Couldn't perform command:" + e.message);
+        throw e;
+      }
     }
   }
 
   async _getLocalDevice(deviceId) {
-    let device = this.devices.find(item => item.deviceId === deviceId);
+    let device = this.devices.find((item) => item.deviceId === deviceId);
     if (!device) {
       device = await this.getDevice(deviceId);
     }
@@ -85,10 +98,10 @@ class Mill {
 
   async getDevice(deviceId) {
     const device = await this._command('selectDevice', { deviceId });
-    if (!this.devices.find(item => item.deviceId === device.deviceId)) {
+    if (!this.devices.find((item) => item.deviceId === device.deviceId)) {
       this.devices.push(device);
     } else {
-      this.devices.map(item => (item.deviceId === device.deviceId ? device : item));
+      this.devices.map((item) => (item.deviceId === device.deviceId ? device : item));
     }
     return device;
   }
