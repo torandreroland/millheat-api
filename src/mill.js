@@ -97,6 +97,12 @@ class Mill {
 
   async getDevice(deviceId) {
     const device = await this._command('selectDevice', { deviceId });
+
+    if (!(['863', '5316', '5317', '5332', '5333', '6933'].includes(device.subDomain))) {
+      device.holidayTemp = Math.round(device.holidayTemp / 10) / 10;
+      device.currentTemp = Math.round(device.currentTemp / 10) / 10;
+    }
+
     if (!this.devices.find((item) => item.deviceId === device.deviceId)) {
       this.devices.push(device);
     } else {
@@ -106,40 +112,70 @@ class Mill {
   }
 
   async setTemperature(deviceId, temperature) {
-    return await this._command('changeDeviceInfo', {
-      homeType: 0,
-      deviceId,
-      value: temperature,
-      timeZoneNum: '+02:00',
-      key: 'holidayTemp',
-    });
+    const device = await this._getLocalDevice(deviceId);
+    if (['863', '5316', '5317', '5332', '5333', '6933'].includes(device.subDomain)) {
+      return await this._command('changeDeviceInfo', {
+        homeType: 0,
+        deviceId,
+        value: temperature,
+        timeZoneNum: '+02:00',
+        key: 'holidayTemp',
+      });
+    } else {
+      return await this._command('deviceControlGen3ForApp', {
+        operation: 'SINGLE_CONTROL',
+        status: 1,
+        subDomain: parseInt(device.subDomain),
+        deviceId: device.deviceId,
+        holdTemp: temperature
+      });
+    }
   }
 
   async setIndependentControl(deviceId, temperature, enable) {
     const device = await this._getLocalDevice(deviceId);
-    return await this._command('deviceControl', {
-      status: enable ? 1 : 0,
-      deviceId: device.deviceId,
-      operation: 1,
-      holdTemp: temperature,
-      subDomain: device.subDomain,
-      holdMins: 0,
-      holdHours: 0,
-    });
+    if (['863', '5316', '5317', '5332', '5333', '6933'].includes(device.subDomain)) {
+      return await this._command('deviceControl', {
+        status: enable ? 1 : 0,
+        deviceId: device.deviceId,
+        operation: 1,
+        holdTemp: temperature,
+        subDomain: device.subDomain,
+        holdMins: 0,
+        holdHours: 0,
+      });
+    } else {
+      return await this._command('deviceControlGen3ForApp', {
+        operation: 'SINGLE_CONTROL',
+        status: enable ? 1 : 0,
+        subDomain: parseInt(device.subDomain),
+        deviceId: device.deviceId,
+        holdTemp: temperature
+      });
+    }
   }
 
   async setPower(deviceId, on) {
     const device = await this._getLocalDevice(deviceId);
-    return await this._command('deviceControl', {
-      subDomain: device.subDomain,
-      deviceId: device.deviceId,
-      testStatus: 1,
-      operation: 0,
-      status: on ? 1 : 0,
-      windStatus: device.fanStatus,
-      tempType: 0,
-      powerLevel: 0,
-    });
+    if (['863', '5316', '5317', '5332', '5333', '6933'].includes(device.subDomain)) {
+      return await this._command('deviceControl', {
+        subDomain: device.subDomain,
+        deviceId: device.deviceId,
+        testStatus: 1,
+        operation: 0,
+        status: on ? 1 : 0,
+        windStatus: device.fanStatus,
+        tempType: 0,
+        powerLevel: 0,
+      });
+    } else {
+      return await this._command('deviceControlGen3ForApp', {
+        operation: 'SWITCH',
+        status: on ? 1 : 0,
+        subDomain: parseInt(device.subDomain),
+        deviceId: device.deviceId
+      });
+    }
   }
 }
 
