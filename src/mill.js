@@ -1,5 +1,4 @@
 import { command, authenticate } from './api';
-import spacetime from 'spacetime';
 
 const REFRESH_OFFSET = 5;
 
@@ -47,17 +46,17 @@ class Mill {
     try {
       return await command(this.accessToken, commandName, payload, this.logger, this.serviceEndpoint, method);
     } catch (e) {
-      if (e.errorCode === 'InvalidAuthTokenError') {
+      if (e.message.errorCode === 'InvalidAuthTokenError') {
         this.logger.debug('Access token expired, trying to refresh access token');
         try {
           await this._authenticate();
           return await command(this.accessToken, commandName, payload, this.logger, this.serviceEndpoint, method);
         } catch (e) {
-          this.logger.error("Couldn't perform command:" + e.message);
+          this.logger.error("Couldn't perform command: " + e.message);
           throw e;
         }
       } else {
-        this.logger.error("Couldn't perform command:" + e.message);
+        this.logger.error("Couldn't perform command: " + e.message);
         throw e;
       }
     }
@@ -72,7 +71,8 @@ class Mill {
   }
 
   async getHomes() {
-    return await this._command('houses', {});
+    const command = 'houses';
+    return await this._command(command, null, 'GET');
   }
 
   async getRooms(homeId) {
@@ -104,44 +104,53 @@ class Mill {
 
   async setTemperature(deviceId, temperature) {
     const device = await this._getLocalDevice(deviceId);
-    const command = '/devices/' + deviceId + '/settings'
+    const command = '/devices/' + deviceId + '/settings';
 
-    return await this._command(command, {
-      "deviceType": device.deviceType,
-      "enabled": true,
-      "settings": {
-        "temperature_normal": temperature
-      }
-    }, 'PATCH');
-    
+    return await this._command(
+      command,
+      {
+        deviceType: device.deviceType.parentType.name,
+        enabled: true,
+        settings: {
+          temperature_normal: temperature,
+        },
+      },
+      'PATCH'
+    );
   }
 
   async setIndependentControl(deviceId, enable) {
     const device = await this._getLocalDevice(deviceId);
-    const command = '/devices/' + deviceId + '/settings'
+    const command = '/devices/' + deviceId + '/settings';
 
-    return await this._command(command, {
-      "deviceType": device.deviceType,
-      "enabled": true,
-      "settings": {
-        "operation_mode": enable ? 'control_individually' : 'weekly_program'
-      }
-    }, 'PATCH');
-
+    return await this._command(
+      command,
+      {
+        deviceType: device.deviceType.parentType.name,
+        enabled: true,
+        settings: {
+          operation_mode: enable ? 'control_individually' : 'weekly_program',
+        },
+      },
+      'PATCH'
+    );
   }
 
   async setPower(deviceId, on) {
     const device = await this._getLocalDevice(deviceId);
-    const command = '/devices/' + deviceId + '/settings'
+    const command = '/devices/' + deviceId + '/settings';
 
-    return await this._command(command, {
-      "deviceType": device.deviceType,
-      "enabled": true,
-      "settings": {
-        "operation_mode": on ? 'control_individually' : 'off'
-      }
-    }, 'PATCH');
-
+    return await this._command(
+      command,
+      {
+        deviceType: device.deviceType.parentType.name,
+        enabled: on ? true : false,
+        settings: {
+          operation_mode: on ? 'control_individually' : 'off',
+        },
+      },
+      'PATCH'
+    );
   }
 }
 

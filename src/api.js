@@ -1,14 +1,9 @@
-import sha1 from 'simple-sha1';
-import { v4 as uuidv4 } from 'uuid';
 import fetchPonyfill from 'fetch-ponyfill';
-import spacetime from 'spacetime';
 const { fetch } = fetchPonyfill({});
 
-const REQUEST_TIMEOUT = '300';
-
 const DEFAULT_HEADERS = {
-  'Accept': 'application/json',
-  'Content-Type': 'application/json'
+  Accept: 'application/json',
+  'Content-Type': 'application/json',
 };
 
 export const authenticate = async (username, password, logger, endpoint) => {
@@ -38,14 +33,15 @@ export const command = async (accessToken, command, payload, logger, endpoint, m
   const body = JSON.stringify(payload);
   const headers = {
     ...DEFAULT_HEADERS,
-    'Authorization': 'Bearer ' + accessToken,
+    Authorization: 'Bearer ' + accessToken,
+  };
+  const options = {
+    method: method,
+    headers: headers,
+    ...(method !== 'GET' && { body: body }),
   };
   logger.debug(`request: { method: ${method}, url: ${url}, headers: ${JSON.stringify(headers)}, body: ${body} }`);
-  const response = await fetch(url, {
-    method,
-    headers,
-    body,
-  });
+  const response = await fetch(url, options);
   let json;
   try {
     json = await response.json();
