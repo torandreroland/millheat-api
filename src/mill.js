@@ -1,7 +1,5 @@
 import { command, authenticate } from './api';
 
-const REFRESH_OFFSET = 5;
-
 const SERVICE_ENDPOINT = 'https://api.millnorwaycloud.com/';
 
 class Mill {
@@ -46,7 +44,8 @@ class Mill {
     try {
       return await command(this.accessToken, commandName, payload, this.logger, this.serviceEndpoint, method);
     } catch (e) {
-      if (e.message.errorCode === 'InvalidAuthTokenError') {
+      const errorType = JSON.parse(JSON.stringify(e.message));
+      if (errorType === 'InvalidAuthTokenError') {
         this.logger.debug('Access token expired, trying to refresh access token');
         try {
           await this._authenticate();

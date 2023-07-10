@@ -24,7 +24,7 @@ export const authenticate = async (username, password, logger, endpoint) => {
   if (response.ok && !json.error) {
     return json;
   } else {
-    throw new Error(`errorCode: ${json.error.type}, error: ${json.error}, description: ${json.error.message}`);
+    throw new Error(`${json.error.type}`);
   }
 };
 
@@ -52,6 +52,6 @@ export const command = async (accessToken, command, payload, logger, endpoint, m
   if (response.ok && !json.error) {
     return json;
   } else {
-    throw new Error(`errorCode: ${json.error.type}, error: ${json.error}, description: ${json.error.message}`);
+    throw new Error(`${json.error.type}`);
   }
 };
