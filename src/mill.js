@@ -121,7 +121,7 @@ class Mill {
       command,
       {
         deviceType: device.deviceType.parentType.name,
-        enabled: true,
+        enabled: device.isEnabled,
         settings: {
           temperature_normal: temperature,
         },
@@ -138,7 +138,7 @@ class Mill {
       command,
       {
         deviceType: device.deviceType.parentType.name,
-        enabled: true,
+        enabled: device.isEnabled,
         settings: {
           operation_mode: enable ? 'control_individually' : 'weekly_program',
         },
@@ -156,9 +156,7 @@ class Mill {
       {
         deviceType: device.deviceType.parentType.name,
         enabled: on ? true : false,
-        settings: {
-          operation_mode: on ? 'control_individually' : 'off',
-        },
+        settings: {},
       },
       'PATCH'
     );
