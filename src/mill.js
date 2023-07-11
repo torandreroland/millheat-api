@@ -114,7 +114,7 @@ class Mill {
   }
 
   async setTemperature(deviceId, temperature) {
-    const device = await this._getLocalDevice(deviceId);
+    const device = await this.getDevice(deviceId);
     const command = '/devices/' + deviceId + '/settings';
 
     return await this._command(
