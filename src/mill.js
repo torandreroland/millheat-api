@@ -156,7 +156,9 @@ class Mill {
       {
         deviceType: device.deviceType.parentType.name,
         enabled: on ? true : false,
-        settings: {},
+        settings: {
+          operation_mode: on ? 'control_individually' : 'off',
+        },
       },
       'PATCH'
     );
