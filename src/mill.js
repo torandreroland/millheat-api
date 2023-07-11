@@ -1,4 +1,7 @@
-import { command, authenticate } from './api';
+import { command, authenticate, refreshToken } from './api';
+import spacetime from 'spacetime';
+
+const TOKEN_LIFETIME = 10;
 
 const SERVICE_ENDPOINT = 'https://api.millnorwaycloud.com/';
 
@@ -8,6 +11,7 @@ class Mill {
     this.serviceEndpoint = opts.serviceEndpoint || SERVICE_ENDPOINT;
     this.username = username;
     this.password = password;
+    this.refreshToken = null;
     this.authenticating = false;
     this.devices = [];
     this._authenticate();
@@ -17,9 +21,13 @@ class Mill {
     if (!this.authenticating) {
       this.authenticating = true;
       try {
-        const auth = await authenticate(this.username, this.password, this.logger, this.serviceEndpoint);
+        const auth =
+          this.refreshToken !== null
+            ? await refreshToken(this.refreshToken, this.logger, this.serviceEndpoint)
+            : await authenticate(this.username, this.password, this.logger, this.serviceEndpoint);
         this.accessToken = auth.idToken;
         this.refreshToken = auth.refreshToken;
+        this.tokenExpire = spacetime.now().add(TOKEN_LIFETIME, 'minute');
         this.authenticating = false;
       } catch (e) {
         this.accessToken = null;
@@ -42,11 +50,15 @@ class Mill {
       await new Promise((resolve) => setTimeout(resolve, 50));
     }
     try {
+      if (!this.accessToken || spacetime.now().isAfter(this.tokenExpire)) {
+        this.logger.debug('Refreshing token');
+        await this._authenticate();
+      }
       return await command(this.accessToken, commandName, payload, this.logger, this.serviceEndpoint, method);
     } catch (e) {
       const errorType = JSON.parse(JSON.stringify(e.message));
       if (errorType === 'InvalidAuthTokenError') {
-        this.logger.debug('Access token expired, trying to refresh access token');
+        this.logger.debug('Token expired, trying to refresh tokens');
         try {
           await this._authenticate();
           return await command(this.accessToken, commandName, payload, this.logger, this.serviceEndpoint, method);
