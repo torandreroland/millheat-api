@@ -1,18 +1,17 @@
-import { command, authenticate } from './api';
+import { command, authenticate, refreshToken } from './api';
 import spacetime from 'spacetime';
 
-const REFRESH_OFFSET = 5;
+const TOKEN_LIFETIME = 10;
 
-const ACCOUNT_ENDPOINT = 'https://eurouter.ablecloud.cn:9005/zc-account/v1/';
-const SERVICE_ENDPOINT = 'https://eurouter.ablecloud.cn:9005/millService/v1/';
+const SERVICE_ENDPOINT = 'https://api.millnorwaycloud.com/';
 
 class Mill {
   constructor(username, password, opts = {}) {
     this.logger = opts.logger || console;
-    this.accountEndpoint = opts.accountEndpoint || ACCOUNT_ENDPOINT;
     this.serviceEndpoint = opts.serviceEndpoint || SERVICE_ENDPOINT;
     this.username = username;
     this.password = password;
+    this.refreshToken = null;
     this.authenticating = false;
     this.devices = [];
     this._authenticate();
@@ -22,15 +21,17 @@ class Mill {
     if (!this.authenticating) {
       this.authenticating = true;
       try {
-        const auth = await authenticate(this.username, this.password, this.logger, this.accountEndpoint);
-        this.token = auth.token;
-        this.userId = auth.userId;
-        this.tokenExpire = auth.tokenExpire;
+        const auth =
+          this.refreshToken !== null
+            ? await refreshToken(this.refreshToken, this.logger, this.serviceEndpoint)
+            : await authenticate(this.username, this.password, this.logger, this.serviceEndpoint);
+        this.accessToken = auth.idToken;
+        this.refreshToken = auth.refreshToken;
+        this.tokenExpire = spacetime.now().add(TOKEN_LIFETIME, 'minute');
         this.authenticating = false;
       } catch (e) {
-        this.token = null;
-        this.userId = null;
-        this.tokenExpire = null;
+        this.accessToken = null;
+        this.refreshToken = null;
         this.authenticating = false;
         throw e;
       }
@@ -38,34 +39,35 @@ class Mill {
       while (this.authenticating) {
         await new Promise((resolve) => setTimeout(resolve, 50));
       }
-      if (!this.token) {
+      if (!this.accessToken) {
         throw new Error('Authentication failed');
       }
     }
   }
 
-  async _command(commandName, payload) {
+  async _command(commandName, payload, method) {
     while (this.authenticating) {
       await new Promise((resolve) => setTimeout(resolve, 50));
     }
     try {
-      if (!this.token || spacetime.now().diff(this.tokenExpire, 'minutes') < REFRESH_OFFSET) {
+      if (!this.accessToken || spacetime.now().isAfter(this.tokenExpire)) {
         this.logger.debug('Refreshing token');
         await this._authenticate();
       }
-      return await command(this.userId, this.token, commandName, payload, this.logger, this.serviceEndpoint);
+      return await command(this.accessToken, commandName, payload, this.logger, this.serviceEndpoint, method);
     } catch (e) {
-      if (e.errorCode === 3515) {
-        this.logger.debug('Token expired, trying to refresh token');
+      const errorType = JSON.parse(JSON.stringify(e.message));
+      if (errorType === 'InvalidAuthTokenError') {
+        this.logger.debug('Token expired, trying to refresh tokens');
         try {
           await this._authenticate();
-          return await command(this.userId, this.token, commandName, payload, this.logger, this.serviceEndpoint);
+          return await command(this.accessToken, commandName, payload, this.logger, this.serviceEndpoint, method);
         } catch (e) {
-          this.logger.error("Couldn't perform command:" + e.message);
+          this.logger.error("Couldn't perform command: " + e.message);
           throw e;
         }
       } else {
-        this.logger.error("Couldn't perform command:" + e.message);
+        this.logger.error("Couldn't perform command: " + e.message);
         throw e;
       }
     }
@@ -80,27 +82,28 @@ class Mill {
   }
 
   async getHomes() {
-    return await this._command('selectHomeList', {});
+    const command = 'houses';
+    return await this._command(command, null, 'GET');
   }
 
   async getRooms(homeId) {
-    return await this._command('selectRoombyHome', { homeId });
+    const command = 'houses/' + homeId + '/rooms';
+    return await this._command(command, null, 'GET');
   }
 
   async getIndependentDevices(homeId) {
-    return await this._command('getIndependentDevices', { homeId });
+    const command = 'houses/' + homeId + '/devices/independent?filterDevices=heatersAndSockets';
+    return await this._command(command, null, 'GET');
   }
 
-  async getDevicesByRoom(roomId) {
-    return await this._command('selectDevicebyRoom', { roomId });
+  async getHouseDevicesByType(homeId) {
+    const command = 'houses/' + homeId + '/devices/grouped/type';
+    return await this._command(command, null, 'GET');
   }
 
   async getDevice(deviceId) {
-    const device = await this._command('selectDevice', { deviceId });
-
-    if (!(['863', '5316', '5317', '5332', '5333', '6933'].includes(device.subDomain))) {
-      device.currentTemp = Math.round(device.currentTemp / 10) / 10;
-    }
+    const command = 'devices/' + deviceId + '/data';
+    const device = await this._command(command, null, 'GET');
 
     if (!this.devices.find((item) => item.deviceId === device.deviceId)) {
       this.devices.push(device);
@@ -112,69 +115,53 @@ class Mill {
 
   async setTemperature(deviceId, temperature) {
     const device = await this._getLocalDevice(deviceId);
-    if (['863', '5316', '5317', '5332', '5333', '6933'].includes(device.subDomain)) {
-      return await this._command('changeDeviceInfo', {
-        homeType: 0,
-        deviceId,
-        value: temperature,
-        timeZoneNum: '+02:00',
-        key: 'holidayTemp',
-      });
-    } else {
-      return await this._command('deviceControlGen3ForApp', {
-        operation: 'SINGLE_CONTROL',
-        status: 1,
-        subDomain: parseInt(device.subDomain),
-        deviceId: device.deviceId,
-        holdTemp: temperature
-      });
-    }
+    const command = '/devices/' + deviceId + '/settings';
+
+    return await this._command(
+      command,
+      {
+        deviceType: device.deviceType.parentType.name,
+        enabled: true,
+        settings: {
+          temperature_normal: temperature,
+        },
+      },
+      'PATCH'
+    );
   }
 
-  async setIndependentControl(deviceId, temperature, enable) {
+  async setIndependentControl(deviceId, enable) {
     const device = await this._getLocalDevice(deviceId);
-    if (['863', '5316', '5317', '5332', '5333', '6933'].includes(device.subDomain)) {
-      return await this._command('deviceControl', {
-        status: enable ? 1 : 0,
-        deviceId: device.deviceId,
-        operation: 1,
-        holdTemp: temperature,
-        subDomain: device.subDomain,
-        holdMins: 0,
-        holdHours: 0,
-      });
-    } else {
-      return await this._command('deviceControlGen3ForApp', {
-        operation: 'SINGLE_CONTROL',
-        status: enable ? 1 : 0,
-        subDomain: parseInt(device.subDomain),
-        deviceId: device.deviceId,
-        holdTemp: temperature
-      });
-    }
+    const command = '/devices/' + deviceId + '/settings';
+
+    return await this._command(
+      command,
+      {
+        deviceType: device.deviceType.parentType.name,
+        enabled: true,
+        settings: {
+          operation_mode: enable ? 'control_individually' : 'weekly_program',
+        },
+      },
+      'PATCH'
+    );
   }
 
   async setPower(deviceId, on) {
     const device = await this._getLocalDevice(deviceId);
-    if (['863', '5316', '5317', '5332', '5333', '6933'].includes(device.subDomain)) {
-      return await this._command('deviceControl', {
-        subDomain: device.subDomain,
-        deviceId: device.deviceId,
-        testStatus: 1,
-        operation: 0,
-        status: on ? 1 : 0,
-        windStatus: device.fanStatus,
-        tempType: 0,
-        powerLevel: 0,
-      });
-    } else {
-      return await this._command('deviceControlGen3ForApp', {
-        operation: 'SWITCH',
-        status: on ? 1 : 0,
-        subDomain: parseInt(device.subDomain),
-        deviceId: device.deviceId
-      });
-    }
+    const command = '/devices/' + deviceId + '/settings';
+
+    return await this._command(
+      command,
+      {
+        deviceType: device.deviceType.parentType.name,
+        enabled: on ? true : false,
+        settings: {
+          operation_mode: on ? 'control_individually' : 'off',
+        },
+      },
+      'PATCH'
+    );
   }
 }
 
