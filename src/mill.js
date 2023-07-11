@@ -99,7 +99,6 @@ class Mill {
     const device = await this._command('selectDevice', { deviceId });
 
     if (!(['863', '5316', '5317', '5332', '5333', '6933'].includes(device.subDomain))) {
-      device.holidayTemp = Math.round(device.holidayTemp / 10) / 10;
       device.currentTemp = Math.round(device.currentTemp / 10) / 10;
     }
 
