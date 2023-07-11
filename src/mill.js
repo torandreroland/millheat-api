@@ -121,7 +121,7 @@ class Mill {
       command,
       {
         deviceType: device.deviceType.parentType.name,
-        enabled: device.isEnabled,
+        enabled: true,
         settings: {
           temperature_normal: temperature,
           operation_mode: 'control_individually',
