@@ -124,6 +124,7 @@ class Mill {
         enabled: device.isEnabled,
         settings: {
           temperature_normal: temperature,
+          temperature_in_independent_mode: temperature,
         },
       },
       'PATCH'
@@ -140,7 +141,11 @@ class Mill {
         deviceType: device.deviceType.parentType.name,
         enabled: true,
         settings: {
-          operation_mode: enable ? 'control_individually' : 'weekly_program',
+          operation_mode: enable
+            ? device.roomId === null
+              ? 'independent_device'
+              : 'control_individually'
+            : 'weekly_program',
         },
       },
       'PATCH'
@@ -157,7 +162,7 @@ class Mill {
         deviceType: device.deviceType.parentType.name,
         enabled: on ? true : false,
         settings: {
-          operation_mode: on ? 'control_individually' : 'off',
+          operation_mode: on ? (device.roomId === null ? 'independent_device' : 'control_individually') : 'off',
         },
       },
       'PATCH'
