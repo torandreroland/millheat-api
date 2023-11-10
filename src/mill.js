@@ -152,7 +152,7 @@ class Mill {
     );
   }
 
-  async setPower(deviceId, on) {
+  async setPower(deviceId, on, independentOrIndividualOperationMode) {
     const device = await this._getLocalDevice(deviceId);
     const command = '/devices/' + deviceId + '/settings';
 
@@ -162,7 +162,7 @@ class Mill {
         deviceType: device.deviceType.parentType.name,
         enabled: on ? true : false,
         settings: {
-          operation_mode: on ? (device.roomId === null ? 'independent_device' : 'control_individually') : 'off',
+          operation_mode: on ? (independentOrIndividualOperationMode ? (device.roomId === null ? 'independent_device' : 'control_individually') : 'weekly_program') : 'off',
         },
       },
       'PATCH'

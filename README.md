@@ -41,5 +41,5 @@ await mill.setTemperature(deviceId, temperature);
 await mill.setIndependentControl(deviceId, enable);
 
 // Set power
-await mill.setPower(deviceId, on);
+await mill.setPower(deviceId, on, independentOrIndividualOperationMode);
 ```
