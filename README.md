@@ -1,6 +1,6 @@
 # millheat-api
 
-Api for communication with Mill heaters
+Api for communication with Mill heaters through MillNorway API
 
 ## Installation
 
