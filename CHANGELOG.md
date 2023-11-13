@@ -2,6 +2,17 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+## [2.0.0-beta.0](https://github.com/andyno/millheat-api/compare/v0.0.10...v2.0.0-beta.0) (2023-11-13)
+
+
+### ⚠ BREAKING CHANGES
+
+* No support for Mill's old cloud service hosted through AbleCloud.
+
+### Features
+
+* support for MillNorway API ([de551a2](https://github.com/andyno/millheat-api/commit/de551a29ba265a925c6871001c6c20e628166db9)), closes [#17](https://github.com/andyno/millheat-api/issues/17)
+
 ### [0.0.10](https://github.com/andyno/millheat-api/compare/v0.0.9...v0.0.10) (2022-01-25)
 
 ### [0.0.9](https://github.com/andyno/millheat-api/compare/v0.0.8...v0.0.9) (2022-01-25)
